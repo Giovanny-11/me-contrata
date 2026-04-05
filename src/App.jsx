@@ -218,6 +218,7 @@ export default function App() {
                 // mapear campo do supabase para a prop esperada
                 tipoServico={p.tipo_servico}
                 foto={p.foto_url}
+                isAdmin={false}
                 aoRemover={() => remover(p.id)}
               />
             ))

@@ -40,13 +40,25 @@ export default function CardContador({
   cidade,
   whatsapp,
   foto,
+  foto_url,
   tipoServico,
+  tipo_servico,
   avaliacao,
   totalAvaliacoes,
+  total_avaliacoes,
   verificado,
+  isAdmin,
   aoRemover,
 }) {
-  const corAvatar = coresAvatar[id % coresAvatar.length];
+  // aceita tanto o formato antigo como o do Supabase
+  const fotoFinal = foto || foto_url;
+  const servicosFinal = tipoServico || tipo_servico || [];
+  const avaliacaoFinal = avaliacao || null;
+  const totalAvaliacoesFinal = totalAvaliacoes || total_avaliacoes || 0;
+
+  // gera cor baseada no nome (mais estável que o id uuid)
+  const corIndex = nome.charCodeAt(0) % coresAvatar.length;
+  const corAvatar = coresAvatar[corIndex];
   const linkWhatsApp = `https://wa.me/244${whatsapp}`;
 
   return (
@@ -55,10 +67,9 @@ export default function CardContador({
       {/* Topo: avatar + info principal */}
       <div className="flex items-start gap-4 mb-4">
 
-        {/* Avatar com foto ou iniciais */}
-        <div className={`w-12 h-12 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center font-semibold text-sm ${!foto ? corAvatar : ''}`}>
-          {foto
-            ? <img src={foto} alt={nome} className="w-full h-full object-cover" />
+        <div className={`w-12 h-12 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center font-semibold text-sm ${!fotoFinal ? corAvatar : ''}`}>
+          {fotoFinal
+            ? <img src={fotoFinal} alt={nome} className="w-full h-full object-cover" />
             : getIniciais(nome)
           }
         </div>
@@ -77,11 +88,11 @@ export default function CardContador({
             {especialidade} · {experiencia} ano{experiencia !== 1 ? 's' : ''} exp.
           </p>
 
-          {avaliacao && (
+          {avaliacaoFinal && (
             <div className="flex items-center gap-1.5 mt-1">
-              <Estrelas valor={avaliacao} />
-              {totalAvaliacoes > 0 && (
-                <span className="text-xs text-slate-400">({totalAvaliacoes} avaliações)</span>
+              <Estrelas valor={avaliacaoFinal} />
+              {totalAvaliacoesFinal > 0 && (
+                <span className="text-xs text-slate-400">({totalAvaliacoesFinal} avaliações)</span>
               )}
             </div>
           )}
@@ -89,20 +100,17 @@ export default function CardContador({
       </div>
 
       {/* Tags de serviços */}
-      {tipoServico && tipoServico.length > 0 && (
+      {servicosFinal.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
-          {tipoServico.map(s => (
-            <span
-              key={s}
-              className="text-xs bg-slate-50 text-slate-500 border border-slate-100 px-3 py-1 rounded-full"
-            >
+          {servicosFinal.map(s => (
+            <span key={s} className="text-xs bg-slate-50 text-slate-500 border border-slate-100 px-3 py-1 rounded-full">
               {s}
             </span>
           ))}
         </div>
       )}
 
-      {/* Rodapé: preço + cidade + acções */}
+      {/* Rodapé */}
       <div className="flex items-center justify-between pt-3 border-t border-slate-100 flex-wrap gap-3">
         <div>
           <p className="font-semibold text-slate-800 text-sm">{preco}</p>
@@ -118,13 +126,17 @@ export default function CardContador({
           >
             💬 WhatsApp
           </a>
-          <button
-            onClick={aoRemover}
-            className="text-xs text-slate-300 hover:text-red-400 transition-colors px-2 py-2"
-            title="Remover"
-          >
-            ✕
-          </button>
+
+          {/* Botão de apagar — só visível para o administrador */}
+          {isAdmin && (
+            <button
+              onClick={aoRemover}
+              className="text-xs text-slate-300 hover:text-red-400 transition-colors px-2 py-2"
+              title="Remover perfil"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
     </div>
