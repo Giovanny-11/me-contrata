@@ -25,11 +25,10 @@ export default function App() {
 
   const carregarContadores = async () => {
     setCarregando(true);
-    // Adicionei o filtro .eq('aprovado', true) para que perfis novos passem por ti antes
+    // REMOVIDO: .eq('aprovado', true) - Agora todos aparecem imediatamente
     const { data, error } = await supabase
       .from('contabilistas')
       .select('*')
-      .eq('aprovado', true) 
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -41,7 +40,7 @@ export default function App() {
   };
 
   const remover = async (id) => {
-    if (!window.confirm("Tens a certeza que queres remover este perfil?")) return;
+    if (!window.confirm("Tens a certeza que queres remover este perfil permanentemente?")) return;
     
     const { error } = await supabase
       .from('contabilistas')
@@ -54,7 +53,8 @@ export default function App() {
   };
 
   const aoSalvarCadastro = (novo) => {
-    // Não adicionamos direto na lista local para respeitar o fluxo de aprovação
+    // Adiciona logo na lista para o utilizador ver o seu perfil criado
+    setContadores(prev => [novo, ...prev]);
     setTela('sucesso');
   };
 
@@ -78,16 +78,16 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 font-sans">
         <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-10 max-w-sm w-full text-center">
-          <div className="text-6xl mb-6">✅</div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-3">Candidatura Enviada!</h2>
+          <div className="text-6xl mb-6">🎉</div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-3">Perfil Ativo!</h2>
           <p className="text-slate-500 text-sm leading-relaxed mb-8">
-            O teu perfil foi submetido e ficará visível após revisão da equipa <strong>Me Contrata</strong>. Entraremos em contacto em breve.
+            O teu perfil já está online e visível para todas as PMEs em Angola. Boa sorte com os novos clientes!
           </p>
           <button
             onClick={() => setTela('home')}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-100"
           >
-            Voltar ao Início
+            Ver no Marketplace
           </button>
         </div>
       </div>
@@ -169,7 +169,6 @@ export default function App() {
   );
 }
 
-// Sub-componentes auxiliares para manter o código limpo
 const Stat = ({ label, value }) => (
   <div className="text-center">
     <p className="text-2xl font-black text-slate-800">{value}</p>
