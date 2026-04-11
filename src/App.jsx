@@ -23,6 +23,10 @@ export default function App() {
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState('');
   const [filtroServico, setFiltroServico] = useState('');
+  const [filtroCidade, setFiltroCidade] = useState('');
+
+  // extrai cidades únicas dos contadores carregados
+  const cidadesDisponiveis = [...new Set(contadores.map(p => p.cidade).filter(Boolean))].sort();
 
   useEffect(() => {
     carregarContadores();
@@ -56,7 +60,8 @@ export default function App() {
 
   const listaFiltrada = contadores.filter(p =>
     p.nome.toLowerCase().includes(busca.toLowerCase()) &&
-    (filtroServico === '' || p.tipo_servico?.includes(filtroServico))
+    (filtroServico === '' || p.tipo_servico?.includes(filtroServico)) &&
+    (filtroCidade === '' || p.cidade === filtroCidade)
   );
 
   // ── TELA: CADASTRO ──
@@ -152,9 +157,37 @@ export default function App() {
           />
         </div>
 
-        {/* FILTROS */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 mb-6">
-          <h2 className="font-semibold text-slate-700 mb-3 text-sm">
+        {/* FILTRO DE CIDADE */}
+        {cidadesDisponiveis.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => setFiltroCidade('')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                filtroCidade === ''
+                  ? 'bg-slate-800 text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              📍 Todas as cidades
+            </button>
+            {cidadesDisponiveis.map(cidade => (
+              <button
+                key={cidade}
+                onClick={() => setFiltroCidade(cidade)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  filtroCidade === cidade
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                📍 {cidade}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* FILTROS DE SERVIÇO */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 mb-6">          <h2 className="font-semibold text-slate-700 mb-3 text-sm">
             Preciso de um contabilista para:
           </h2>
           <div className="flex flex-wrap gap-2">
