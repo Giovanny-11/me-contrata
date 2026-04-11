@@ -3,6 +3,47 @@ import { supabase } from './supabase';
 
 const ADMIN_PASSWORD = 'mecontrata2024'; // muda para a tua password
 
+// Componente que gera URL assinado para ver o documento
+function VerDocumento({ documentoUrl }) {
+  const [abrindo, setAbrindo] = useState(false);
+
+  const verDocumento = async () => {
+    setAbrindo(true);
+    // extrai o nome do ficheiro do URL
+    const partes = documentoUrl.split('/documentos/');
+    if (partes.length < 2) {
+      window.open(documentoUrl, '_blank');
+      setAbrindo(false);
+      return;
+    }
+    const nomeFicheiro = partes[1];
+    const { data, error } = await supabase.storage
+      .from('documentos')
+      .createSignedUrl(nomeFicheiro, 60); // URL válido 60 segundos
+
+    if (error || !data?.signedUrl) {
+      alert('Erro ao abrir documento. Tenta novamente.');
+    } else {
+      window.open(data.signedUrl, '_blank');
+    }
+    setAbrindo(false);
+  };
+
+  return (
+    <button
+      onClick={verDocumento}
+      disabled={abrindo}
+      className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-700 text-xs font-medium px-3 py-2 rounded-xl transition-colors mb-3 w-fit disabled:opacity-60"
+    >
+      {abrindo ? (
+        <><span className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /> A abrir...</>
+      ) : (
+        <>📎 Ver documento de verificação</>
+      )}
+    </button>
+  );
+}
+
 function getIniciais(nome) {
   return nome ? nome.split(' ').filter(n => n.length > 0).slice(0, 2).map(n => n[0]).join('').toUpperCase() : '??';
 }
@@ -171,14 +212,7 @@ export default function Admin() {
 
                       {/* Documento */}
                       {p.documento_url ? (
-                        <a
-                          href={p.documento_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-700 text-xs font-medium px-3 py-2 rounded-xl transition-colors mb-3 w-fit"
-                        >
-                          📎 Ver documento de verificação
-                        </a>
+                        <VerDocumento documentoUrl={p.documento_url} />
                       ) : (
                         <p className="text-xs text-slate-300 mb-3">Sem documento enviado</p>
                       )}
