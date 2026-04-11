@@ -58,6 +58,7 @@ export default function App() {
     setTela('sucesso');
   };
 
+
   const listaFiltrada = contadores.filter(p => {
     const texto = busca.toLowerCase();
     const termoMatch = (
