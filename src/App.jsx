@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CardContador from './CardContador';
 import Cadastro from './Cadastro';
-import Admin from './Admin';
+import Admin from './admin';
 import { supabase } from './supabase';
 
 const servicos = [
