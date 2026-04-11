@@ -21,16 +21,13 @@ function getIniciais(nome) {
 
 export default function Cadastro({ aoVoltar, aoSalvar }) {
   const [form, setForm] = useState({
-    nome: '',
-    especialidade: '',
-    experiencia: '',
-    cidade: '',
-    preco: '',
-    whatsapp: '',
+    nome: '', especialidade: '', experiencia: '',
+    cidade: '', preco: '', whatsapp: '',
   });
 
-  const [fotoFile, setFotoFile] = useState(null);     // ficheiro original para upload
-  const [fotoPreview, setFotoPreview] = useState(''); // base64 só para preview
+  const [fotoFile, setFotoFile] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState('');
+  const [docFile, setDocFile] = useState(null);
   const [servicosSelecionados, setServicosSelecionados] = useState([]);
   const [erros, setErros] = useState({});
   const [enviando, setEnviando] = useState(false);
@@ -49,11 +46,20 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
       return;
     }
     setFotoFile(file);
-    // preview local
     const reader = new FileReader();
     reader.onloadend = () => setFotoPreview(reader.result);
     reader.readAsDataURL(file);
-    if (erros.foto) setErros(prev => ({ ...prev, foto: '' }));
+  };
+
+  const handleDoc = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setErros(prev => ({ ...prev, doc: 'O documento deve ter menos de 5MB.' }));
+      return;
+    }
+    setDocFile(file);
+    if (erros.doc) setErros(prev => ({ ...prev, doc: '' }));
   };
 
   const formatarWhatsApp = (valor) => {
@@ -94,27 +100,34 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
 
     try {
       let foto_url = null;
+      let documento_url = null;
 
-      // 1. Upload da foto para o Supabase Storage (se existir)
+      // Upload foto
       if (fotoFile) {
         const ext = fotoFile.name.split('.').pop();
-        const nomeUnico = `${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from('fotos')
-          .upload(nomeUnico, fotoFile, { contentType: fotoFile.type });
-
-        if (uploadError) {
-          console.error('Erro no upload da foto:', uploadError.message);
-          // continua sem foto em vez de bloquear o registo
-        } else {
-          const { data: urlData } = supabase.storage
-            .from('fotos')
-            .getPublicUrl(nomeUnico);
-          foto_url = urlData.publicUrl;
+          .upload(`${Date.now()}.${ext}`, fotoFile, { contentType: fotoFile.type });
+        if (!uploadError) {
+          const { data } = supabase.storage.from('fotos').getPublicUrl(`${Date.now()}.${ext}`);
+          foto_url = data?.publicUrl;
         }
       }
 
-      // 2. Inserir o registo na tabela contabilistas
+      // Upload documento
+      if (docFile) {
+        const ext = docFile.name.split('.').pop();
+        const nomeDoc = `${Date.now()}_doc.${ext}`;
+        const { error: docError } = await supabase.storage
+          .from('documentos')
+          .upload(nomeDoc, docFile, { contentType: docFile.type });
+        if (!docError) {
+          const { data } = supabase.storage.from('documentos').getPublicUrl(nomeDoc);
+          documento_url = data?.publicUrl;
+        }
+      }
+
+      // Inserir na tabela
       const { data, error } = await supabase
         .from('contabilistas')
         .insert([{
@@ -125,8 +138,10 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
           cidade: form.cidade,
           whatsapp: form.whatsapp,
           foto_url,
+          documento_url,
           tipo_servico: servicosSelecionados,
           verificado: false,
+          aprovado: false,
           avaliacao: null,
           total_avaliacoes: 0,
         }])
@@ -134,16 +149,13 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
         .single();
 
       if (error) {
-        console.error('Erro ao guardar:', error.message);
-        alert('Ocorreu um erro ao criar o perfil. Tenta novamente.');
+        alert('Erro ao criar perfil. Tenta novamente.');
         return;
       }
 
       aoSalvar(data);
-
     } catch (err) {
-      console.error('Erro inesperado:', err);
-      alert('Ocorreu um erro inesperado. Tenta novamente.');
+      alert('Erro inesperado. Tenta novamente.');
     } finally {
       setEnviando(false);
     }
@@ -159,14 +171,9 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
 
-      {/* Header */}
       <header className="bg-white border-b border-slate-100 shadow-sm px-4 py-4 flex items-center gap-3">
-        <button
-          onClick={passo === 2 ? () => setPasso(1) : aoVoltar}
-          className="text-slate-500 hover:text-slate-800 transition-colors text-lg font-medium"
-        >
-          ←
-        </button>
+        <button onClick={passo === 2 ? () => setPasso(1) : aoVoltar}
+          className="text-slate-500 hover:text-slate-800 transition-colors text-lg font-medium">←</button>
         <div>
           <h1 className="text-base font-bold text-slate-800">Criar perfil</h1>
           <p className="text-xs text-slate-400">Passo {passo} de 2</p>
@@ -184,7 +191,7 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
             <p className="text-sm font-semibold text-slate-700">Informação pessoal</p>
 
-            {/* Preview foto */}
+            {/* Foto */}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg flex-shrink-0 overflow-hidden">
                 {fotoPreview
@@ -206,12 +213,10 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
               input={<input className={inputClass(erros.nome)} placeholder="Ex: Simão Bengui Afonso"
                 value={form.nome} onChange={e => set('nome', e.target.value)} />}
             />
-
             <Campo label="Especialidade *" erro={erros.especialidade}
               input={<input className={inputClass(erros.especialidade)} placeholder="Ex: Fiscalidade e IVA"
                 value={form.especialidade} onChange={e => set('especialidade', e.target.value)} />}
             />
-
             <div className="grid grid-cols-2 gap-3">
               <Campo label="Anos de experiência *" erro={erros.experiencia}
                 input={<input className={inputClass(erros.experiencia)} placeholder="Ex: 5"
@@ -223,7 +228,6 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
                   value={form.preco} onChange={e => set('preco', e.target.value)} />}
               />
             </div>
-
             <Campo label="Cidade *" erro={erros.cidade}
               input={
                 <select className={inputClass(erros.cidade)} value={form.cidade} onChange={e => set('cidade', e.target.value)}>
@@ -232,7 +236,6 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
                 </select>
               }
             />
-
             <Campo label="Número WhatsApp *" erro={erros.whatsapp}
               input={
                 <div className="flex">
@@ -248,6 +251,33 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
               }
             />
 
+            {/* Upload documento */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Documento de verificação
+              </label>
+              <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+                docFile ? 'border-green-400 bg-green-50' : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50'
+              }`}>
+                <span className="text-xl">{docFile ? '✅' : '📎'}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-700">
+                    {docFile ? docFile.name : 'Cédula profissional ou carta de curso'}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {docFile ? 'Clica para alterar' : 'PDF, JPG ou PNG · máx. 5MB · opcional mas recomendado'}
+                  </p>
+                </div>
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleDoc} />
+              </label>
+              {erros.doc && <p className="text-xs text-red-500 mt-1">{erros.doc}</p>}
+              {!docFile && (
+                <p className="text-xs text-blue-600 mt-1.5">
+                  💡 Perfis com documento verificado aparecem com badge "✓ Verificado"
+                </p>
+              )}
+            </div>
+
             <button onClick={avancar}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors mt-2">
               Continuar →
@@ -258,8 +288,6 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
         {/* ── PASSO 2 ── */}
         {passo === 2 && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
-
-            {/* Preview do perfil */}
             <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm overflow-hidden flex-shrink-0">
                 {fotoPreview
@@ -301,10 +329,7 @@ export default function Cadastro({ aoVoltar, aoSalvar }) {
             <button onClick={handleSubmit} disabled={enviando}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
               {enviando ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  A guardar...
-                </>
+                <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />A guardar...</>
               ) : '✓ Criar perfil'}
             </button>
 
