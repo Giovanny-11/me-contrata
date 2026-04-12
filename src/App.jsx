@@ -3,6 +3,7 @@ import CardContador from './CardContador';
 import Cadastro from './Cadastro';
 import Admin from './admin';
 import { supabase } from './supabase';
+import Feedback from './Feedback';
 
 const servicos = [
   { label: "Fecho de contas",              emoji: "📋" },
@@ -127,7 +128,6 @@ export default function App() {
           </div>
         </div>
       </header>
-
       <div className="max-w-3xl mx-auto px-4 mt-6">
 
         {/* BANNER CTA */}
@@ -259,6 +259,7 @@ export default function App() {
         </div>
 
       </div>
+      <Feedback />
     </div>
   );
 }
