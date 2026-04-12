@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase';
 
-const ADMIN_PASSWORD = 'mecontrata2024'; // muda para a tua password
+const ADMIN_PASSWORD = 'Texa2005@'; // muda para a tua password
 
 // Componente que gera URL assinado para ver o documento
 function VerDocumento({ documentoUrl }) {
@@ -54,6 +54,7 @@ export default function Admin() {
   const [erroPassword, setErroPassword] = useState(false);
   const [perfis, setPerfis] = useState([]);
   const [denuncias, setDenuncias] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
   const [carregando, setCarregando] = useState(false);
   const [aba, setAba] = useState('pendentes');
 
@@ -75,6 +76,9 @@ export default function Admin() {
     if (aba === 'denuncias') {
       const { data } = await supabase.from('denuncias').select('*').order('created_at', { ascending: false });
       setDenuncias(data || []);
+    } else if (aba === 'feedbacks') {
+      const { data } = await supabase.from('feedbacks').select('*').order('created_at', { ascending: false });
+      setFeedbacks(data || []);
     } else {
       const { data } = await supabase
         .from('contabilistas')
@@ -150,11 +154,12 @@ export default function Admin() {
       <div className="max-w-3xl mx-auto px-4 mt-6">
 
         {/* Abas */}
-        <div className="flex gap-2 mb-6 bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="flex gap-2 mb-6 bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm flex-wrap">
           {[
             { key: 'pendentes', label: '⏳ Pendentes' },
             { key: 'aprovados', label: '✅ Aprovados' },
             { key: 'denuncias', label: '🚩 Denúncias' },
+            { key: 'feedbacks', label: '💬 Feedbacks' },
           ].map(a => (
             <button key={a.key} onClick={() => setAba(a.key)}
               className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${
@@ -269,6 +274,45 @@ export default function Admin() {
                         </div>
                         <button onClick={() => apagarDenuncia(d.id)}
                           className="text-xs text-slate-300 hover:text-red-400 px-2 py-1 flex-shrink-0">✕</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+
+            {/* FEEDBACKS */}
+            {aba === 'feedbacks' && (
+              feedbacks.length === 0 ? (
+                <div className="text-center py-16 text-slate-400">
+                  <p className="text-4xl mb-3">💬</p>
+                  <p className="font-medium">Nenhum feedback ainda!</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {feedbacks.map(f => (
+                    <div key={f.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <span className="text-xl flex-shrink-0">
+                          {f.tipo === 'sugestao' && '💡'}
+                          {f.tipo === 'problema' && '🐛'}
+                          {f.tipo === 'elogio' && '❤️'}
+                          {f.tipo === 'outro' && '💬'}
+                        </span>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                              {f.tipo === 'sugestao' && 'Sugestão'}
+                              {f.tipo === 'problema' && 'Problema'}
+                              {f.tipo === 'elogio' && 'Elogio'}
+                              {f.tipo === 'outro' && 'Outro'}
+                            </span>
+                            <span className="text-xs text-slate-300">
+                              {new Date(f.created_at).toLocaleDateString('pt-AO', { day: '2-digit', month: 'long', year: 'numeric' })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-700">{f.mensagem}</p>
+                        </div>
                       </div>
                     </div>
                   ))}
